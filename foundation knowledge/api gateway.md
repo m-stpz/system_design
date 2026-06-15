@@ -80,6 +80,8 @@ routes:
 
 - If any microservice is using gRPC or any other protocol, and the client HTTP, the API gateway would transform/translate it, so the systems could communicate
 
+> With a microservice architecture, an API gateway is basically a requirement
+
 ## Most popular API gateways
 
 Managed:
