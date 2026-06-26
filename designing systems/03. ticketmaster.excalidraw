@@ -3120,8 +3120,8 @@
     {
       "id": "PbL-YpLG8xgb2e_6ZkVyl",
       "type": "ellipse",
-      "x": 615.6506036545472,
-      "y": 249.00033695850806,
+      "x": 501.5133026465154,
+      "y": 250.0721392289027,
       "width": 138.52308572359902,
       "height": 95.42588177358891,
       "angle": 0,
@@ -3139,11 +3139,11 @@
         "type": 2
       },
       "seed": 2146712174,
-      "version": 87,
-      "versionNonce": 1461133294,
+      "version": 127,
+      "versionNonce": 478681202,
       "isDeleted": false,
       "boundElements": null,
-      "updated": 1781891825630,
+      "updated": 1781892096501,
       "link": null,
       "locked": false
     },
