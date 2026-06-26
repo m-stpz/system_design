@@ -81,6 +81,8 @@ async function getUserProfile(userId: string) {
 }
 ```
 
+For more info on caching, see foundation knowledge/caching_topologies.md
+
 2. Rate limiting: uses atomic increment to limit the number of API requests a user can make per minute
 
 3. Distributed locking: ensures only a microservice can perform given operation at a time (usually RedLock algorithm)
