@@ -95,9 +95,42 @@ For more info on caching, see foundation knowledge/caching_topologies.md
 - On-premise / VM: Installed on a dedicated Linux server in the company's data center
 - Cloud (managed): Hosted on cloud platforms, e.g. AWS ElastiCache, GCP Memorystore, or Redis Cloud
 
-<!-- video 11:03
-https://www.youtube.com/watch?v=fmT5nlEkl3U
+## Important questions
 
-CONTINUE CACHING TOPOLOGIES!
-(https://gemini.google.com/app/f22c7af0e4e2cb4a)
--->
+### What's the hotkey issue?
+
+- a large volume of concurrent traffic hits one specific redis key at the exact same time
+- this single point of failure, creates a bottleneck
+
+#### How to mitigate it?
+
+1. local memory caching (near-caching): store the specific ultra-hot key directly in memory of your application servers for a few seconds
+
+- this way, the app server won't need to reach to redis for that key
+
+2. key scattering (salting): duplicate hot keys across multiple redis slots by appending a random suffix
+
+- instead of grabbing `product:123`, the application will request `product:123_1`, `product:123_2`, `product:123_3`, this distributing the load across multiple redis nodes
+
+### What's the expiration policy of your cache?
+
+Here, there are two things to keep in mind: **TTL** (time-to-live | how data naturally dies) and **Maxmemory eviction** (what happens when Redis runs out of space)
+
+#### TTL: How to delete expired keys
+
+Redis doesn't constantly scan every single key to check if it's dead, instead it uses a hybrid approach:
+
+1. passive deletion: when a user requests a key, Redis checks if it's expired. If it is, Redis deletes it and returns `nil`
+2. active deletion: peridiocally (about 10 times a second), Redis tests a random sample of keys with a TTL. If more than 25% of the sample is expired, it clears them out and repeats the process to keep memory clean
+
+#### Eviction policies (when maxmemory is reached)
+
+If the cache has 100% of its RAM memory filled, Redis relies on `maxmemory-policy` config to decide what to kick out to make new room for new writes. Most common policies
+
+- `allkeys-lru` (least recently used): evaluates all keys and evicts the ones that haven't been requested recently (best choice for general caching)
+- `volatire-lru`: ony look at keys that have TTL set, evicting the least recently used among them
+  - better if some keys should always be kept there
+- `allkeys-lfu` (least frequently used): evicts keys that are requests the least number of times, regardless of how recently they were touched
+  - great for ensuring "hot" items always stay in cache
+- `noeviction`: redis will refuse to write any new data and return out-of-memory (OOM) error
+  - standard behavior when redis is used as a primary db, not a cache, where losing data is fine
