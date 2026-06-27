@@ -94,3 +94,10 @@ For more info on caching, see foundation knowledge/caching_topologies.md
 - Locally: running on local machine as a background processes
 - On-premise / VM: Installed on a dedicated Linux server in the company's data center
 - Cloud (managed): Hosted on cloud platforms, e.g. AWS ElastiCache, GCP Memorystore, or Redis Cloud
+
+<!-- video 11:03
+https://www.youtube.com/watch?v=fmT5nlEkl3U
+
+CONTINUE CACHING TOPOLOGIES!
+(https://gemini.google.com/app/f22c7af0e4e2cb4a)
+-->
