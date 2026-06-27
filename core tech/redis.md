@@ -19,6 +19,8 @@ Since it's single-threaded, it simplifies the order of writes significantly, sin
 
 ## What it does | Use-cases
 
+### 1. Caching
+
 - It usually sits between your application server and your main db to alleviate load
 
 ```
@@ -83,7 +85,10 @@ async function getUserProfile(userId: string) {
 
 For more info on caching, see foundation knowledge/caching_topologies.md
 
-2. Rate limiting: uses atomic increment to limit the number of API requests a user can make per minute
+### 2. Rate limiting: uses atomic increment to limit the number of API requests a user can make per minute
+
+- Redis can also be used to rate limit access to an **expensive service**
+- We set an increment key and allow requests to pass through while the number is less than the request limit for a given time period
 
 3. Distributed locking: ensures only a microservice can perform given operation at a time (usually RedLock algorithm)
 
