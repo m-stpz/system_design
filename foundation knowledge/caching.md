@@ -98,14 +98,48 @@ They are:
    - app server -> cache --(async bactch)--> db
    - if the cache crashes, data is lost
 
-### 1. Cache-aside
-
 ## 4. Cache eviction policies
+
+It decides which data stays in the cache when the memory is filled
+
+1. Least recently used (LRU): evicts items that haven't been used recently. Most common and balanced
+2. Least frequently used (LFU): evicts items that are used least often, even if accessed recently. Good for unbalanced access patterns
+3. First-in-first-out (FIFO): evicts the oldest item first. Simple, but rarely the right choice
+4. Time-to-live (TTL): Each item expires after a given time (e.g. 5min). Good for data that can go stale, e.g. API responses
 
 ## 5. Common issues that come up from caching
 
+1. Cache stampede (Thundering herd): when a popular entry is hit multiple times and the entry has had its TTL expired. Now, there will be several services trying to rebuild that cache
+   - how to solve it:
+     - unifying the requests: if the requests are equal, operate the first request, add to cache and all the rest wait to be able to grab from cache
+     - cache warming: popular keys get they ttl renewed
+
+2. Cache consistency: you can have stale data in the cache
+   - no silver bullet here, as usually, it mainly depends on how fresh your data needs to be
+   - how to solve it:
+     - invalidate on write: if data is updated on the db, clean it up from cache
+     - short TTLs
+
+3. Hot keys: entries that can disproportionate access/demand. This entry can overload the given cache node
+   - how to solve it:
+     - replicate the keys across the cache cluster
+     - add local cache on the app server
+
 ## 6. How to talk about caching in an interview
 
-```
+When to bring it up?
 
-```
+- Don't simply add a cache for the sake of it. It should be justified
+
+- Read-heavy workloads: when the read load is quite heavy and we want to take the load off the db
+- Expensive queries: if a query has complex JOIN or heavy payload, a cache can do wonders
+- High datatabase CPU
+- Latency requirements
+
+How to introduce caching
+
+1. Identify the bottleneck
+2. Decide what to cache
+3. Choose your cache architecture
+4. Set an eviction policy
+5. Address the downsides
