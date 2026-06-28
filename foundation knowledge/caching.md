@@ -19,6 +19,41 @@ server -> cache [~100 nanoseconds]
 
 > **Memory (RAM) is around 10,000x faster than disk (SSD) on average**
 
+On a system design perspective, caching usually enters when we talk about the non-functional requirements | deep dives
+
+### 1.1 How to select a cache key (cache key design)
+
+- Cache key must be unique, deterministic, and hierarchical
+  - within a medium to large application is normal to have millions, or even hundreds of millions of keys living inside the cache at the same time
+  - the cache instance will look like a massive, flat dictionary of key-value pairs
+
+```
+key_structure = namespace:entity_id:context/variant
+```
+
+- Examples:
+  - simple entity: `user:profile:123`
+  - relational data: `user:123:orders`
+  - context aware: `produce:888:pricing:country=US:currency=USD
+  - filtered query: `search:results:category=shoes:sort=price_asc:page=2`
+
+### 1.2. What to cache
+
+There are 4 data types that gain a lot with cache
+
+1. static data: data that rarely changes (weeks/months), but is read on almost every rqeuest
+   - e.g.: country codes, currency exchange config, tax brackets, application feature flags
+   - "Because this data is static, I can cache it with a long TTL (e.g. 24h) and use an **"invalidate-on-write"** trigger if it's updated
+2. computational data: data that requires expensive computation (e.g.,complex `JOIN`, scanning millions of rows to calculate)
+   - e.g.: daily analytics dashboards, company-wide sales reports, gaming leaderboards
+   - "Instead of calculating this on every page, we run a cron job/background worker to calculate it once every 10 min. and save the computed payload on the cache"
+3. transient/session data: high-write, high-read data that has a specific expiry date and doesn't necessarily need disk persistence
+   - e.g.: user auth sessions, shopping carts, MFA verification codes
+   - "We can isolate user sessions from our primary db and store them directly on redis. If a session token is lost due to a cache crash, not problems. The user needs to log in again"
+4. downstream api responses: resposes from 3rd-party services that charge per request or have strict rate limits
+   - e.g. weather API data, google maps, shipping cost calculators
+   - "To avoid hitting 3rd-party rate limits and paying extra API fees, we cache the result of this API"
+
 ## 2. Where to place a cache
 
 ### 2.1 External caching
@@ -140,6 +175,14 @@ How to introduce caching
 
 1. Identify the bottleneck
 2. Decide what to cache
+   - data that:
+     - doesn't change often
+     - read frequently
+     - expensive to fetch/compute
 3. Choose your cache architecture
+   - cache-aside, read-through, write-through, write-back
 4. Set an eviction policy
+   - lru, lfu, fifo, ttl
 5. Address the downsides
+   - stale data
+   - hot keys
