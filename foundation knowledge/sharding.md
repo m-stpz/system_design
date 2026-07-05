@@ -58,3 +58,24 @@ shard2:
 
 Benefit: Highly flexible. You can move data between shards dynamically without changing the sharding key logic
 Trade-off: Every single query has a preliminary work of fetching the directory service. Besides: single point of failure + added (minor) latency
+
+## Benefits or sharding
+
+1. Infinite storage scaling
+   - `single db (2tb) * shard instances (10) = 20tb`
+   - you scale/descale this as you want
+2. Horizontal write throughput
+   - `single db (5k TPS) * shard instances (10) = 50k TPS`
+3. Blast radius reduction: no single point of failure. If you shard goes down (1 out of 5, 20% out of 80% users/processes will feel it), the system continues working
+
+## Engineering complexity
+
+Sharding is rarely a first resort because it introduces a lot of architectural overhead
+
+1. Cross-shared joins are broken: If you need to write a SQL query that joins a table sitting on shard A with shard B, the db can't perform this natively.
+
+- Your app server needs to fetch the data from both instances, stitch them together in memory. Highly inneficient
+
+2. Losing transactions / ACID guarantees: Performing atomic operations across multiple independent dbs requires complex distributed transaction protocols (e.g. two-phase commit), which slows down performance
+
+3. Resharding is painful: If your db outgrows your current sharding setup and you need to move from 3 to 5 shards, re-calculating the hash positions and moving terabytes of live data across the network without downtime is very hard!
