@@ -63,3 +63,7 @@
 | Write volume       | < 2k to 5k TPS (transactions per second) | > 5k TPS                          | Sharding/NoSQL architecture (Scale writes horizontally) |
 | Total storage size | < 1TB                                    | > 1TB to 2TB                      | Sharding or moving older data to a cold data warehouse  |
 | Cache hit ratio    | >= 99%                                   | < 95% (data outgrew RAM capacity) | Vertical scaling first, then sharding                   |
+
+These values are just illustrational. You have have a db instance that holds way more than 5k TPS or 2TB of data size
+
+- AWS offers machines with 140 TB of storage and 50k TPS
