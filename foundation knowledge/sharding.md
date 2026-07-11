@@ -120,13 +120,53 @@ Trade-off: Every single query has a preliminary work of fetching the directory s
 
 Sharding is rarely a first resort because it introduces a lot of architectural overhead
 
-1. Cross-shared joins are broken: If you need to write a SQL query that joins a table sitting on shard A with shard B, the db can't perform this natively.
+### 1. Hot spots: load unbalance
+
+- Even though we might have a good sharding strategy, some entries might get more load than others
+- how do we solve this?
+
+1. salting the sharding key: adding a randomizing factor known as a salt
+   - instead of sharding exclusively by user id, you modify the key before hashing by appending a random integer (e.g. a number from 0 to N)
+   - then, when the system hashes these salted strings, they map to different shards
+   - trade-off:
+     - traffic is distributed
+     - however, now application has to query all N shards in parallel and aggregate the results, rather than a single targeted lookup
+
+2. Multi-tier caching
+
+- When a very popular key is searched, implement a dedicated local cache on the app servers (in-memory app caching like Guava or Memcached) in addition to the other cache system
+
+3. Having a dedicated shard for popular entries
+
+### 2. Cross shard operations
+
+- Cross-shared joins are broken
+
+If you need to write a SQL query that joins a table sitting on shard A with shard B, the db can't perform this natively.
 
 - Your app server needs to fetch the data from both instances, stitch them together in memory. Highly inneficient
 
-2. Losing transactions / ACID guarantees: Performing atomic operations across multiple independent dbs requires complex distributed transaction protocols (e.g. two-phase commit), which slows down performance
+- Any query that needs information that lives in more than one shard, becomes rather expensive
 
-3. Resharding is painful: If your db outgrows your current sharding setup and you need to move from 3 to 5 shards, re-calculating the hash positions and moving terabytes of live data across the network without downtime is very hard!
+Solutions:
+
+1. Selecting a good shard key diminishes this problem
+2. Cache result of expensive cross shard queries
+   - TTL 5min
+3. Denormalize data, so related information lives together
+   - put the data close to where it lives
+   - you reduce latency at the cost of increasing writes
+   - increase writes to reduce reads
+
+Cross shard operations should be the exception, not the norm
+
+### 3. Losing transactions / ACID guarantees
+
+Performing atomic operations across multiple independent dbs requires complex distributed transaction protocols (e.g. two-phase commit), which slows down performance
+
+### 4. Resharding is painful
+
+If your db outgrows your current sharding setup and you need to move from 3 to 5 shards, re-calculating the hash positions and moving terabytes of live data across the network without downtime is very hard!
 
 Given the complexity of maintaining a sharding architecture, the standard industry play book is to
 
