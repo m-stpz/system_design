@@ -164,6 +164,18 @@ Cross shard operations should be the exception, not the norm
 
 Performing atomic operations across multiple independent dbs requires complex distributed transaction protocols (e.g. two-phase commit), which slows down performance
 
+Solution
+
+1. 2PC: Two-phase commit
+
+- there's an orchestrator that verifies whether to two parties are ready for the transaction
+- sounds good in theory, but it's slow and fragile in prod
+- if the shard coordinator goes down, then we have an issue
+
+2. Saga pattern: sequence of smaller operations
+
+- Each action, has a compensating reaction, so if anyone fails, we can "compensate", so things don't end up in an inconsistent state
+
 ### 4. Resharding is painful
 
 If your db outgrows your current sharding setup and you need to move from 3 to 5 shards, re-calculating the hash positions and moving terabytes of live data across the network without downtime is very hard!
@@ -174,3 +186,20 @@ Given the complexity of maintaining a sharding architecture, the standard indust
 2. Introduce agressive caching
 3. If needed, add read-replicas (replication)
 4. Only pivot to sharding if data size or write volume gives you no other choice
+
+## Sharding in System Design Interviews
+
+- Bring it up on the deep dives when talking about scaling, but justify!
+
+1. Storage:
+   - storage > 25tb, shard
+2. Write throughput
+   - write throughput > 50k writes per second during peak, shard
+3. Read throughput
+
+When you have it, remember:
+
+1. Propose a shard key based on the access pattern
+2. Select distribution strategy
+3. Identify the trade-offs
+4. Describe how you'd handle growth
