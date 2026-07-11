@@ -197,9 +197,13 @@ Given the complexity of maintaining a sharding architecture, the standard indust
    - write throughput > 50k writes per second during peak, shard
 3. Read throughput
 
-When you have it, remember:
+When you do need it, remember:
 
 1. Propose a shard key based on the access pattern
 2. Select distribution strategy
+   - hash based sharding with consisten hashing
 3. Identify the trade-offs
+   - hot spots
+   - cross-shard issues
+   - consistent state
 4. Describe how you'd handle growth
