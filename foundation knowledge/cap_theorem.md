@@ -29,7 +29,9 @@ Network fails between the nodes
 - should we allow the access to the given resource even though it's stale?
   - RISK wrong data (availability)
 
-## When to choose consistency
+> Network fails between them? Stop serving data (consistency) OR risk wrong data (availability)
+
+### When to choose consistency
 
 - Systems that need:
   - strong consistency read after write
@@ -37,14 +39,49 @@ Network fails between the nodes
   - the data can't be stale
 
 - Examples:
-  - banks
-  - ticket booking
-  - ordering system
-  - warehouse system
+  - financial systems
+    - stock trades must be executed in a strict order
+    - deposit/withdraw, etc
+  - ticket booking (airline, event)
+    - if we sell a ticket, everyone needs to see it as unavailable, without delay
+  - inventory system (amazon)
+    - can't sell the same last item to multiple customers
 
-## When to choose availability
+> Does every single user in my system need to see the latest state and in case they didn't this would be catastrophic? If yes, then choose consistency
+
+### When to choose availability
+
+> If you don't need strong consistency, then choose availability!
+
+- Social media
+- Review services
+- Streaming services
 
 - If it's fine that some of the data isn't the most up to date, we should choose availability
 
 - Examples:
   - most software would live here
+
+## How does it influence the design?
+
+### Consistency
+
+- Distributed transactions
+- Limit to a single node
+  - atomic transactions
+- Discuss consensus protocols
+- Accept higher latency
+  - use loading states
+- Example tools:
+  - Postgres
+  - Traditional RDBMS
+  - Spanner
+  - NoSQL with consistency mode (DynamoDB)
+
+### Availability
+
+- use multiple replicas
+- CDC (change data capture) and eventual consistency
+- Example tools
+  - DynamoDB (multi-availability zones)
+  - Cassandra
