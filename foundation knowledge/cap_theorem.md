@@ -49,6 +49,15 @@ Network fails between the nodes
 
 > Does every single user in my system need to see the latest state and in case they didn't this would be catastrophic? If yes, then choose consistency
 
+#### Different types of consistency
+
+1. Strong: all reads reflect the most recent
+2. Causal: related events appear in order
+3. Read-your-writes: user see their own updates
+4. Eventual: updates propagate eventually
+
+> When our system prioritizes availability, we're saying that it's fine for it to be eventually consistent
+
 ### When to choose availability
 
 > If you don't need strong consistency, then choose availability!
@@ -64,7 +73,7 @@ Network fails between the nodes
 
 ## How does it influence the design?
 
-### Consistency
+### Consistency | The system should return an error instead of stale or incorrect data
 
 - Distributed transactions
 - Limit to a single node
@@ -72,16 +81,35 @@ Network fails between the nodes
 - Discuss consensus protocols
 - Accept higher latency
   - use loading states
+- use synchronous replication
+- single-leader architecture
+- two-phase commit (2PC)
 - Example tools:
   - Postgres
   - Traditional RDBMS
   - Spanner
   - NoSQL with consistency mode (DynamoDB)
 
-### Availability
+### Availability | The system should accept write/reads even if the data is stale
 
 - use multiple replicas
+- async replication
+- multi-leader / leaderless
+- conflict resolution strategies
+  - LWW
+  - CRDTs
+- Caching
 - CDC (change data capture) and eventual consistency
 - Example tools
   - DynamoDB (multi-availability zones)
   - Cassandra
+
+## Different parts of the system can have different requirements
+
+- Ticketmaster
+  - availability for CRUD on events
+  - consistency for booking tickets
+
+- Tinder
+  - availability for viewing profile data
+  - consistency for matching
