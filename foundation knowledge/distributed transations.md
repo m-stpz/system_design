@@ -67,6 +67,95 @@ While 2PC assumes that we need all or nothing atomicity across multiple services
 
 > The system might be temporarily in an inconsistent state while compensation is running. Customer might see a charge in their card before refund goes through
 
-<!-- video  7:14 -->
+> For every sub-transaction Ti, there must be a corresponding compensating transaction Ci that undoes its effects
 
-https://www.youtube.com/watch?v=DOFflggE_0Q
+#### Ways of implementing Saga Pattern: Choreography vs. Orchestration
+
+1. Choreography: decentralized
+
+- Publish/subscribe pattern
+  - each service broadcasts an event when it finishes its work
+    - payment service -> if success publishes "card charged" event
+    - inventory service -> if success publishes "inventory reserved" event
+      - if failed publishes "inventory reserved failed" event ---> now, the upstream event, payment service needs to "compensate" this failure
+
+  - any interested service can pick it up and react
+  - if we have 2-3 related events, this works well. However, if we have many services publishing events, this becomes difficult to maintain
+    - where did it fail?
+    - which compensating actions have already run?
+
+2. Orchestration: usually used at production-level
+
+- dedicated orchestration
+- it tells each service what to do each step at a time
+- isn't a coordinator way of implemeting SAGA a "step back" to 2PC (2-phase commit)?
+  - no, because it doesn't block any part of the system
+    - no locks dangling that stop the system
+  - however, what if it crashes?
+    - since it's non-blocking, the system continues working correctly
+    - once a new coordinator gets to scene, it just reads the logs and identifies in which step the process stopped and if there are any compensating actions to be run
+
+- Temporal, AWS Step Functions are orchestration tools
+
+## Compensations are not that simple
+
+- The core of saga pattern is performing the actions, in a non-blocking, manner and allow the system to eventually get to a consistent state through compensating actions
+- However, the "redo", the compensating actions aren't that straightforward
+  - When should they run?
+    - decide based on business logic and just trigger "final"/user-facing events when you're pretty sure everything is in place
+  - What if they fail?
+    - you need to have try logic for them
+    - they need to be idempotent. You shouldn't refund 100 euros twice, for instance
+- You need the same level of reliability for your failures as you do your happy paths
+
+## Transactional outbox pattern
+
+- When building event-driver distributed system or Saga pattern (specially with choreography), you can run into "dual-write" problem
+
+Let's say a given action needs to write to two places:
+
+- 1. db: insert into given table
+- 2. message broker: publish the event to the message brokers
+
+What happens if the write to the db succeeds, but the write to the message broker fails?
+
+- you'd have a created entry on the db without a respective event to deal with it
+
+What happens if the write to the message broker successed, but the one of the db fails?
+
+- you'd have an event created on the message broker that wouldn't have a respective db entry
+
+Then, it enters the Transactional outbox pattern: you guarantee that updating the db and publishing the event happen as a single, atomic operation
+
+### How it works
+
+- Instead of having two writes to two different systems over the network at the same time, you write to two tables in the same db within a single local db transaction
+
+Step 1: atomic local write
+
+- add a dedicated table called `outbox` to your services db
+- when a business action happens, open a standard db transaction and write to both tables
+  - since they are atomic transactions, either both succeed or nothing is written -> no data mismatch
+
+```
+write to specific_table_business_logic (e.g. add to oders)
+write to outbox_event
+```
+
+Step 2: relay event to broker
+
+- now that the event is persisted to the db, a separate async process reads the rows from the `outbox` table and ships them to the message broker
+
+```
+[ order_service ]
+       │
+       ▼ (Atomic Local Transaction)
+ ┌─────────── Database ───────────┐
+ │ ┌──────────────┐ ┌───────────┐ │
+ │ │ orders table │ │  outbox   │ │
+ │ └──────────────┘ └─────┬─────┘ │
+ └────────────────────────┼───────┘
+                          │
+                          ▼ (Asynchronous Relay)
+                 [ Message Relayer ] ───> [ Message Broker (Kafka) ]
+```
