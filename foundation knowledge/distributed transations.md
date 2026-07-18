@@ -14,7 +14,7 @@ email_service => send a confirmation email with reservation details [db3]
 
 ## Two Strategies for Distributed Transactions
 
-### 2-Phase Commit - Strong consistency
+### 2-Phase Commit - Strong consistency | All or Nothing
 
 - Classic academic solution for distributed transactions
 - Coordinator ensures the necessary transactions happened
@@ -38,6 +38,35 @@ client -- coordinator - ticket_service
 
 > However, 2PC doesn't work well in production, at scale
 
-- The issue with 2PC is that it's blocking, and blocking at distributed system levels is dangerous, since we rely on all machines being healthy at the same time
+#### Issues with 2PC
 
-### Saga Pattern
+1. Coordinator crashing: The issue with 2PC is that it's blocking, and blocking at distributed system levels is dangerous, since we rely on all machines being healthy at the same time
+
+- Coordinator collects yes from all participants [phase 1]
+- Coordinator crashes
+- Now, all participants are "blocked"
+  - they can't commit on their own, nor block it
+
+2. Slow participant: It holds up the entire process
+
+> The entire system moves at the speed of the slowest participant
+
+Due to these issues 2PC doesn't work in production. Across independent services, it's not a good choice
+
+### Saga Pattern | Eventual Consistency
+
+While 2PC assumes that we need all or nothing atomicity across multiple services, Saga Pattern has a different take
+
+- We just need a way to get to an eventually consistent state, even when things go wrong
+- Instead of coordinating every transaction with locks across services, we break the work into independent local transactions
+
+- Then, you run a compensating action. These are business level undos that reverse the effects
+
+- payment_service -> refund instead of rollback
+- ticket_service -> cancelation instead of an abort
+
+> The system might be temporarily in an inconsistent state while compensation is running. Customer might see a charge in their card before refund goes through
+
+<!-- video  7:14 -->
+
+https://www.youtube.com/watch?v=DOFflggE_0Q
