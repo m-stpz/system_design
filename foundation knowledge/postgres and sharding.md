@@ -24,4 +24,7 @@
 - They were built specifically to handle the scaling limitations of traditional relational dbs
 - They usually handle horizontal sharding natively out of the box
 
-###
+## Native Sharding
+
+- In MongoDB, you define a shard key. The db handles the cluster organization automatically
+- MongoDB automatically balances the shards
