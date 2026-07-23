@@ -71,7 +71,7 @@ While 2PC assumes that we need all or nothing atomicity across multiple services
 
 #### Ways of implementing Saga Pattern: Choreography vs. Orchestration
 
-1. Choreography: decentralized
+1. Choreography: decentralized, better for simpler flows
 
 - Publish/subscribe pattern
   - each service broadcasts an event when it finishes its work
@@ -107,6 +107,8 @@ While 2PC assumes that we need all or nothing atomicity across multiple services
     - you need to have try logic for them
     - they need to be idempotent. You shouldn't refund 100 euros twice, for instance
 - You need the same level of reliability for your failures as you do your happy paths
+
+> Usually in prod, high-scalable systems, you have: saga with orchestration, idempotent operations, transactional outbox
 
 ## Transactional outbox pattern
 
@@ -159,3 +161,16 @@ Step 2: relay event to broker
                           ▼ (Asynchronous Relay)
                  [ Message Relayer ] ───> [ Message Broker (Kafka) ]
 ```
+
+There are two ways to implement this secondary engine
+
+- Approch A: Transaction log mining (change data capture / CDC)
+  - cleanest, lowest-overhead approach used in high-scale production
+  - a tool (Debezium/AWS database migration service [DMS]) constantly tails your db's internal transaction logs
+  - the moment it spots a new entry inside the `outbox` table, it extracts the payload and publishes to Kafka
+  - almost zero performance penalty on your primary application
+
+- Approach B: Polling publisher
+  - simpler approach for smaller architectures
+  - a background worker thread inside your application runs a cron query every <time-window> (e.g. 500ms)
+  - Loops through them, publishes them to the message brokers and marks them as `processed = true` or deletes them
